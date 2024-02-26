@@ -82,15 +82,12 @@ class Relationship(enum.Flag):
                 rv |= -r
         return rv
 
-    # testing methods {Relationship : (FamilyMember, FamilyMember) -> bool}
-    # the order matters : the first matching relation will be preferred between two persons
-    # all relationships should be there, except for None
     _testers: ClassVar[dict[Relationship, Callable[[FamilyMember, FamilyMember], bool]]] = enum.nonmember({})
-
     def _register_tester(self, func, /) -> Callable[[FamilyMember, FamilyMember], bool]:
         """
         Should be used (on an appropriate method) at least once per relationship enum member,
         except for Relationship.NONE.
+        The order matters : the first matching relation will be preferred between two persons.
         """
         Relationship._testers[self] = func
         return func
@@ -458,7 +455,8 @@ class FamilyMember:
 
     def get_reachable_family_members(self, rv: set, /, distance: int = float('inf')) -> None: # type: ignore
         """
-        Mutates a set in-place. Fills it with all people infinitely reachable from self.
+        Mutates a set in-place.
+        Fills it with all people reachable from self within distance hops of base relationships.
         """
         if self in rv:
             return
