@@ -478,5 +478,11 @@ class FamilyMember:
 
     def get_readable_relationship(self, other: Self, /) -> str:
         relationship = self.get_nominal_relationship(other)
+
+        if relationship is Relationship.NONE:
+            return f"{other} is not (closely) related to {self}."
+        elif relationship is Relationship.SELF:
+            return f"{other} is the same person as {self}."
+
         relationship_part = relationship.name.lower().replace("_", " ")
         return f"{other} is the {relationship_part} of {self}."
