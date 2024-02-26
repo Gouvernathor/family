@@ -474,3 +474,9 @@ class FamilyMember:
                                      self._distant_descendants,
                                      )-rv:
             person.get_reachable_family_members(rv, distance-1)
+
+
+    def get_readable_relationship(self, other: Self, /) -> str:
+        relationship = self.get_nominal_relationship(other)
+        relationship_part = relationship.name.lower().replace("_", " ")
+        return f"{other} is the {relationship_part} of {self}."
