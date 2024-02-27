@@ -254,7 +254,7 @@ class FamilyMember:
     def is_sibling(self, other: FamilyMember, /) -> bool:
         """
         A sibling is someone who has the exact same parents as self,
-        if there.
+        if these parents are two or more.
         """
         return self._is_sibling_or_half(other, half=False)
 
@@ -267,9 +267,10 @@ class FamilyMember:
         if self._is_sibling_or_half(other, half=None):
             return False
 
-        self_parents = self._parents
-        parents_spouses = set.union(*(p._spouses for p in self_parents))
-        return bool(parents_spouses & other._parents)
+        for parent in self._parents:
+            if other._parents & parent._spouses:
+                return True
+        return False
 
     # grand parents and grand children
     @Relationship.GRANDPARENT._register_tester
