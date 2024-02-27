@@ -543,38 +543,25 @@ class FamilyMember:
         def key_function(rl: tuple[Relationship, ...], /) -> tuple[int, int]:
             return (len(rl), sum(r.value for r in rl))
 
-        # def get_neighbors_wrapper(node: FamilyMember, /) -> Iterable[tuple[FamilyMember, tuple[Relationship]]]:
-        #     for other, relationship in node._iter_all_close_relatives_with_relationship():
-        #         yield other, (relationship,)
-        # return dijkstra(self, get_neighbors_wrapper, key_function, ())
-
-        # actually dijkstra is not that easy to use here,
-        # because getting a list of neighbors is not trivial :
-        # you would have to first get a bunch of reachable family members,
-        # then tests whether get_nominal_relationship returns something other than NONE.
-        # the algo should somehow recompute the distance between already-seen nodes and newly found ones.
-        # maybe that's breaking invariants dijkstra relies on.
-        # but I think the fact that A -> B -> C -> D can only be simplified to A -> D if A -> C or B -> D are valid,
-        # makes it possible
-
-        # this implementation is not ideal because key_function is not actually optimized on,
-        # rather the shortening seems to only happen at the end of a chain.
+        def neighbord_initial_finder(node: FamilyMember, /) -> list[tuple[FamilyMember, tuple[Relationship]]]:
+            return [(other, (relationship,)) for other, relationship in node._iter_all_close_relatives_with_relationship()]
 
         floating_distance_cache: dict[tuple[Relationship, ...], tuple[int, int]] = StoringFactoryDict(key_function)
-        chains: dict[FamilyMember, tuple[Relationship, ...]] = {}
-        chains[self] = ()
+        new_neighbors: dict[FamilyMember, list[tuple[FamilyMember, tuple[Relationship]]]] = StoringFactoryDict(neighbord_initial_finder)
+        chains: dict[FamilyMember, tuple[Relationship, ...]] = {self: ()}
         unvisited: set[FamilyMember] = {self}
         while unvisited:
             current = min(unvisited, key=(lambda member: floating_distance_cache[chains[member]]))
             unvisited.remove(current)
             current_chain = chains[current]
             newly_unvisited = set()
-            for relative, relationship in current._iter_all_close_relatives_with_relationship():
-                new_chain = current_chain + (relationship,)
+            for relative, relationship_chain in new_neighbors[current]:
+                new_chain = current_chain + relationship_chain
                 old_chain = chains.get(relative)
                 if old_chain is None or floating_distance_cache[new_chain] < floating_distance_cache[old_chain]:
                     chains[relative] = new_chain
                     newly_unvisited.add(relative)
+            del new_neighbors[current][:]
             for visited in chains.keys()-newly_unvisited:
                 for newcomer in newly_unvisited:
                     relationship = visited.get_nominal_relationship(newcomer)
@@ -582,7 +569,8 @@ class FamilyMember:
                         new_chain = chains[visited] + (relationship,)
                         if floating_distance_cache[new_chain] < floating_distance_cache[chains[newcomer]]:
                             chains[newcomer] = new_chain
-                            unvisited.add(visited) # and make newcomer be a relative of visited that time around
+                            unvisited.add(visited)
+                            new_neighbors[visited].append((newcomer, (relationship,)))
             unvisited.update(newly_unvisited)
 
         del chains[self]
