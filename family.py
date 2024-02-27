@@ -94,6 +94,46 @@ class Relationship(enum.Flag):
         Relationship._testers[self] = func
         return func
 
+    @property
+    def human_readable(self, /) -> str:
+        match self:
+            case Relationship.NONE: return "not related" # + "to"
+            case Relationship.SELF: return "the same person" # + "as"
+
+            case Relationship.PARENT: return "a parent"
+            case Relationship.CHILD: return "a child"
+            case Relationship.SPOUSE: return "a spouse"
+
+            case Relationship.CLONE: return "a clone"
+            case Relationship.CLONE_ORIGINAL: return "the source genetic material"
+
+            case Relationship.DIRECT_DISTANT_ANCESTOR: return "a distant ancestor"
+            case Relationship.DIRECT_DISTANT_DESCENDANT: return "a distant descendant"
+
+            case Relationship.SIBLING: return "a sibling"
+            case Relationship.HALF_SIBLING: return "a half sibling"
+            case Relationship.STEP_SIBLING: return "a step sibling"
+
+            case Relationship.GRANDPARENT: return "a grandparent"
+            case Relationship.GRANDCHILD: return "a grandchild"
+            case Relationship.GREAT_GRANDPARENT: return "a great grandparent"
+            case Relationship.GREAT_GRANDCHILD: return "a great grandchild"
+
+            case Relationship.AUNT_UNCLE: return "an aunt or uncle"
+            case Relationship.NEPHEW_NIECE: return "a nephew or niece"
+            case Relationship.FIRST_COUSIN: return "a first cousin"
+
+            case Relationship.GRAND_AUNT_UNCLE: return "a grand aunt or uncle"
+            case Relationship.GRAND_NEPHEW_NIECE: return "a grand nephew or niece"
+
+            case Relationship.PARENT_IN_LAW: return "a parent in law"
+            case Relationship.CHILD_IN_LAW: return "a child in law"
+            case Relationship.SIBLING_IN_LAW: return "a sibling in law"
+
+            case Relationship.CO_CLONE: return "a co-clone"
+
+        raise ValueError(f"Unknown relationship {self!r}")
+
 class FamilyMember:
     """
     This is a Person class.
