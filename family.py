@@ -1,7 +1,9 @@
 from __future__ import annotations
 
 import enum
-from typing import Callable, ClassVar, Mapping, Self
+from typing import Callable, ClassVar, Iterable, Mapping, Self
+
+from util import StoringFactoryDict
 
 class Relationship(enum.Flag):
     # technical
@@ -414,7 +416,7 @@ class FamilyMember:
     __copy__ = copy
 
 
-    def get_nominal_relationship(self, other: Self, /) -> Relationship:
+    def get_nominal_relationship(self, other: FamilyMember, /) -> Relationship:
         """
         Returns the first matching relationship, in priority order,
         or Relationship.NONE if no relationship is found.
@@ -454,6 +456,31 @@ class FamilyMember:
 
         return {member: relationship for member in memberset if (relationship:=meth(member))}
 
+    def _iter_all_close_relatives(self):
+        yield from self._parents
+        yield from self._children
+        yield from self._spouses
+        yield from self._clones
+        yield from self._clone_originals
+        yield from self._distant_ancestors
+        yield from self._distant_descendants
+
+    def _iter_all_close_relatives_with_relationship(self):
+        for parent in self._parents:
+            yield parent, Relationship.PARENT
+        for child in self._children:
+            yield child, Relationship.CHILD
+        for spouse in self._spouses:
+            yield spouse, Relationship.SPOUSE
+        for clone in self._clones:
+            yield clone, Relationship.CLONE
+        for clone_original in self._clone_originals:
+            yield clone_original, Relationship.CLONE_ORIGINAL
+        for distant_ancestor in self._distant_ancestors:
+            yield distant_ancestor, Relationship.DIRECT_DISTANT_ANCESTOR
+        for distant_descendant in self._distant_descendants:
+            yield distant_descendant, Relationship.DIRECT_DISTANT_DESCENDANT
+
     def get_reachable_family_members(self, rv: set, /, distance: int = float('inf')) -> None: # type: ignore
         """
         Mutates a set in-place.
@@ -467,23 +494,72 @@ class FamilyMember:
         if not distance:
             return
 
-        for person in self._parents.union(self._children,
-                                     self._spouses,
-                                     self._clones,
-                                     self._clone_originals,
-                                     self._distant_ancestors,
-                                     self._distant_descendants,
-                                     )-rv:
+        for person in set(self._iter_all_close_relatives())-rv:
             person.get_reachable_family_members(rv, distance-1)
 
 
-    def get_readable_relationship(self, other: Self, /) -> str:
-        relationship = self.get_nominal_relationship(other)
+    def get_all_reachable_relationship_chains(self, /) -> dict[FamilyMember, tuple[Relationship, ...]]:
 
-        if relationship is Relationship.NONE:
+        def key_function(rl: tuple[Relationship, ...], /) -> tuple[int, int]:
+            return (len(rl), sum(r.value for r in rl))
+
+        # def get_neighbors_wrapper(node: FamilyMember, /) -> Iterable[tuple[FamilyMember, tuple[Relationship]]]:
+        #     for other, relationship in node._iter_all_close_relatives_with_relationship():
+        #         yield other, (relationship,)
+        # return dijkstra(self, get_neighbors_wrapper, key_function, ())
+
+        # actually dijkstra is not that easy to use here,
+        # because getting a list of neighbors is not trivial :
+        # you would have to first get a bunch of reachable family members,
+        # then tests whether get_nominal_relationship returns something other than NONE.
+        # the algo should somehow recompute the distance between already-seen nodes and newly found ones.
+        # maybe that's breaking invariants dijkstra relies on.
+        # but I think the fact that A -> B -> C -> D can only be simplified to A -> D if A -> C or B -> D are valid,
+        # makes it possible
+
+        # this implementation is not ideal because key_function is not actually optimized on,
+        # rather the shortening seems to only happen at the end of a chain.
+
+        floating_distance_cache: dict[tuple[Relationship, ...], tuple[int, int]] = StoringFactoryDict(key_function)
+        chains: dict[FamilyMember, tuple[Relationship, ...]] = {}
+        chains[self] = ()
+        unvisited: set[FamilyMember] = {self}
+        while unvisited:
+            current = min(unvisited, key=(lambda member: floating_distance_cache[chains[member]]))
+            unvisited.remove(current)
+            current_chain = chains[current]
+            newly_unvisited = set()
+            for relative, relationship in current._iter_all_close_relatives_with_relationship():
+                new_chain = current_chain + (relationship,)
+                old_chain = chains.get(relative)
+                if old_chain is None or floating_distance_cache[new_chain] < floating_distance_cache[old_chain]:
+                    chains[relative] = new_chain
+                    newly_unvisited.add(relative)
+            for visited in chains.keys()-newly_unvisited:
+                for newcomer in newly_unvisited:
+                    relationship = visited.get_nominal_relationship(newcomer)
+                    if relationship is not Relationship.NONE:
+                        new_chain = chains[visited] + (relationship,)
+                        if floating_distance_cache[new_chain] < floating_distance_cache[chains[newcomer]]:
+                            chains[newcomer] = new_chain
+                            unvisited.add(visited) # and make newcomer be a relative of visited that time around
+            unvisited.update(newly_unvisited)
+
+        del chains[self]
+        return chains
+
+
+    def get_readable_relationship(self, other: Self, relationship: Relationship|Iterable[Relationship]|None = None, /) -> str:
+        if relationship is None:
+            relationship = self.get_nominal_relationship(other)
+        if isinstance(relationship, Iterable):
+            relationship = tuple(relationship)
+        else:
+            relationship = (relationship,)
+
+        if relationship == (Relationship.NONE,):
             return f"{other} is not (closely) related to {self}."
-        elif relationship is Relationship.SELF:
+        elif relationship == (Relationship.SELF,):
             return f"{other} is the same person as {self}."
 
-        relationship_part = relationship.name.lower().replace("_", " ")
-        return f"{other} is the {relationship_part} of {self}."
+        return f"{other} is " + " of ".join(r.human_readable for r in relationship[::-1]) + f" of {self}."
