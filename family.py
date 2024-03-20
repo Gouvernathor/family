@@ -94,45 +94,55 @@ class Relationship(enum.Flag):
         Relationship._testers[self] = func
         return func
 
-    @property
-    def human_readable(self, /) -> str:
+    def get_human_readable(self, /, *, article=False, preposition=False) -> str:
+        art = "a "
+        prep = " of"
+
         match self:
-            case Relationship.NONE: return "not related" # + "to"
-            case Relationship.SELF: return "the same person" # + "as"
+            case Relationship.NONE: main, prep = "not related", " to"
+            case Relationship.SELF: main, prep = "the same person", " as"
 
-            case Relationship.PARENT: return "a parent"
-            case Relationship.CHILD: return "a child"
-            case Relationship.SPOUSE: return "a spouse"
+            case Relationship.PARENT: main = "parent"
+            case Relationship.CHILD: main = "child"
+            case Relationship.SPOUSE: main = "spouse"
 
-            case Relationship.CLONE: return "a clone"
-            case Relationship.CLONE_ORIGINAL: return "the source genetic material"
+            case Relationship.CLONE: main = "clone"
+            case Relationship.CLONE_ORIGINAL: art, main = "the ", "source genetic material"
 
-            case Relationship.DIRECT_DISTANT_ANCESTOR: return "a distant ancestor"
-            case Relationship.DIRECT_DISTANT_DESCENDANT: return "a distant descendant"
+            case Relationship.DIRECT_DISTANT_ANCESTOR: main = "distant ancestor"
+            case Relationship.DIRECT_DISTANT_DESCENDANT: main = "distant descendant"
 
-            case Relationship.SIBLING: return "a sibling"
-            case Relationship.HALF_SIBLING: return "a half sibling"
-            case Relationship.STEP_SIBLING: return "a step sibling"
+            case Relationship.SIBLING: main = "sibling"
+            case Relationship.HALF_SIBLING: main = "half sibling"
+            case Relationship.STEP_SIBLING: main = "step sibling"
 
-            case Relationship.GRANDPARENT: return "a grandparent"
-            case Relationship.GRANDCHILD: return "a grandchild"
-            case Relationship.GREAT_GRANDPARENT: return "a great grandparent"
-            case Relationship.GREAT_GRANDCHILD: return "a great grandchild"
+            case Relationship.GRANDPARENT: main = "grandparent"
+            case Relationship.GRANDCHILD: main = "grandchild"
+            case Relationship.GREAT_GRANDPARENT: main = "great grandparent"
+            case Relationship.GREAT_GRANDCHILD: main = "great grandchild"
 
-            case Relationship.AUNT_UNCLE: return "an aunt or uncle"
-            case Relationship.NEPHEW_NIECE: return "a nephew or niece"
-            case Relationship.FIRST_COUSIN: return "a first cousin"
+            case Relationship.AUNT_UNCLE: art, main = "an ", "aunt or uncle"
+            case Relationship.NEPHEW_NIECE: main = "nephew or niece"
+            case Relationship.FIRST_COUSIN: main = "first cousin"
 
-            case Relationship.GRAND_AUNT_UNCLE: return "a grand aunt or uncle"
-            case Relationship.GRAND_NEPHEW_NIECE: return "a grand nephew or niece"
+            case Relationship.GRAND_AUNT_UNCLE: main = "grand aunt or uncle"
+            case Relationship.GRAND_NEPHEW_NIECE: main = "grand nephew or niece"
 
-            case Relationship.PARENT_IN_LAW: return "a parent in law"
-            case Relationship.CHILD_IN_LAW: return "a child in law"
-            case Relationship.SIBLING_IN_LAW: return "a sibling in law"
+            case Relationship.PARENT_IN_LAW: main = "parent in law"
+            case Relationship.CHILD_IN_LAW: main = "child in law"
+            case Relationship.SIBLING_IN_LAW: main = "sibling in law"
 
-            case Relationship.CO_CLONE: return "a co-clone"
+            case Relationship.CO_CLONE: main = "co-clone"
 
-        raise ValueError(f"Unknown relationship {self!r}")
+            case _: raise ValueError(f"Unknown relationship {self!r}")
+
+        if article:
+            main = art + main
+        if preposition:
+            main = main + prep
+        return main
+
+    human_readable = property(get_human_readable)
 
 class FamilyMember:
     """
@@ -590,4 +600,4 @@ class FamilyMember:
         elif relationship == (Relationship.SELF,):
             return f"{other} is the same person as {self}."
 
-        return f"{other} is " + " of ".join(r.human_readable for r in relationship[::-1]) + f" of {self}."
+        return f"{other} is " + " ".join(r.get_human_readable(article=True, preposition=True) for r in relationship[::-1]) + f" {self}."
