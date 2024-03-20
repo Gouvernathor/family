@@ -90,6 +90,7 @@ class Relationship(enum.Flag):
         Should be used (on an appropriate method) at least once per relationship enum member,
         except for Relationship.NONE.
         The order matters : the first matching relation will be preferred between two persons.
+        The callable returns whether the second one is [the tested relationship] of the first one.
         """
         Relationship._testers[self] = func
         return func
@@ -187,6 +188,10 @@ class FamilyMember:
             parent._children.discard(self)
     @Relationship.PARENT._register_tester
     def is_parent(self, other: FamilyMember, /) -> bool:
+        """
+        These tester functions return whether *other* is the parent of *self*.
+        Not the other way around.
+        """
         return other in self._parents
 
     @property
