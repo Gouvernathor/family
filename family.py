@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import enum
+import itertools
 from typing import Callable, ClassVar, Iterable, Mapping, Self
 
 from util import StoringFactoryDict
@@ -521,20 +522,14 @@ class FamilyMember:
         yield from self._distant_descendants
 
     def _iter_all_close_relatives_with_relationship(self):
-        for parent in self._parents:
-            yield parent, Relationship.PARENT
-        for child in self._children:
-            yield child, Relationship.CHILD
-        for spouse in self._spouses:
-            yield spouse, Relationship.SPOUSE
-        for clone in self._clones:
-            yield clone, Relationship.CLONE
-        for clone_original in self._clone_originals:
-            yield clone_original, Relationship.CLONE_ORIGINAL
-        for distant_ancestor in self._distant_ancestors:
-            yield distant_ancestor, Relationship.DIRECT_DISTANT_ANCESTOR
-        for distant_descendant in self._distant_descendants:
-            yield distant_descendant, Relationship.DIRECT_DISTANT_DESCENDANT
+        repeat = itertools.repeat
+        yield from zip(self._parents, repeat(Relationship.PARENT))
+        yield from zip(self._children, repeat(Relationship.CHILD))
+        yield from zip(self._spouses, repeat(Relationship.SPOUSE))
+        yield from zip(self._clones, repeat(Relationship.CLONE))
+        yield from zip(self._clone_originals, repeat(Relationship.CLONE_ORIGINAL))
+        yield from zip(self._distant_ancestors, repeat(Relationship.DIRECT_DISTANT_ANCESTOR))
+        yield from zip(self._distant_descendants, repeat(Relationship.DIRECT_DISTANT_DESCENDANT))
 
     def get_reachable_family_members(self, rv: set, /, distance: int = float('inf')) -> None: # type: ignore
         """
