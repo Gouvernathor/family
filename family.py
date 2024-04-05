@@ -109,7 +109,7 @@ class Relationship(enum.Flag):
             case Relationship.SPOUSE: main = "spouse"
 
             case Relationship.CLONE: main = "clone"
-            case Relationship.CLONE_ORIGINAL: art, main = "the ", "source genetic material"
+            case Relationship.CLONE_ORIGINAL: art, main = "some ", "source genetic material"
 
             case Relationship.DIRECT_DISTANT_ANCESTOR: main = "distant ancestor"
             case Relationship.DIRECT_DISTANT_DESCENDANT: main = "distant descendant"
