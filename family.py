@@ -101,8 +101,8 @@ class Relationship(enum.Flag):
         prep = " of"
 
         match self:
-            case Relationship.NONE: main, prep = "not related", " to"
-            case Relationship.SELF: main, prep = "the same person", " as"
+            case Relationship.NONE: art, main, prep = "", "not related", " to"
+            case Relationship.SELF: art, main, prep = "", "the same person", " as"
 
             case Relationship.PARENT: main = "parent"
             case Relationship.CHILD: main = "child"
