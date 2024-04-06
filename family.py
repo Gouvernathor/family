@@ -96,7 +96,10 @@ class Relationship(enum.Flag):
         Relationship._testers[self] = func
         return func
 
-    def get_human_readable(self, /, *, article=False, preposition=False) -> str:
+    def get_human_readable(self, /, *, article=False, preposition=False, unique=False) -> str:
+        """
+        `unique` affects the chosen article. If `article` is False, `unique` is ignored.
+        """
         art = "a "
         prep = " of"
 
@@ -138,6 +141,8 @@ class Relationship(enum.Flag):
 
             case _: raise ValueError(f"Unknown relationship {self!r}")
 
+        if unique and art:
+            art = "the "
         if article:
             main = art + main
         if preposition:
