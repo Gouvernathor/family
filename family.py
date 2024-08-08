@@ -595,10 +595,7 @@ class FamilyMember:
     def get_readable_relationship(self, other: Self, relationship: Relationship|Iterable[Relationship]|None = None, /) -> str:
         if relationship is None:
             relationship = self.get_nominal_relationship(other)
-        if isinstance(relationship, Iterable):
-            relationship = tuple(relationship)
-        else:
-            relationship = (relationship,)
+        relationship = tuple(relationship)
 
         if relationship == (Relationship.NONE,):
             return f"{other} is not (closely) related to {self}."
