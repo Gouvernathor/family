@@ -488,7 +488,7 @@ class FamilyMember:
 
         return Relationship.NONE
 
-    def get_full_relationship(self, other: Self, /) -> Relationship:
+    def get_full_relationship(self, other: FamilyMember, /) -> Relationship:
         """
         Uses the union of enum flags.
         Much slower than get_nominal_relationship.
@@ -592,7 +592,7 @@ class FamilyMember:
         return chains
 
 
-    def get_readable_relationship(self, other: Self, relationship: Relationship|Iterable[Relationship]|None = None, /) -> str:
+    def get_readable_relationship(self, other: FamilyMember, relationship: Relationship|Iterable[Relationship]|None = None, /) -> str:
         if relationship is None:
             relationship = self.get_nominal_relationship(other)
         relationship = tuple(relationship)
